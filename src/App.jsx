@@ -1,6 +1,9 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Register from './pages/Register';
 import Login from './pages/Login';
+import RecoverPassword from './pages/RecoverPassword';
+import ServiceList from './pages/ServiceList';
 
 function App() {
   return (
@@ -8,6 +11,8 @@ function App() {
       <Routes>
         <Route path="/registro" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/recuperar" element={<RecoverPassword />} />
+        <Route path="/servicios" element={<ServiceList />} />
         {/* Redirección por defecto a registro, puedes cambiar a /login si prefieres */}
         <Route path="*" element={<Navigate to="/registro" replace />} />
       </Routes>

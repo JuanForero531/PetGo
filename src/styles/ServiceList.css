@@ -1,0 +1,183 @@
+/* Paleta: marrón #3B2A1A, ámbar #C97D2E, crema #FAF7F2 */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Playfair+Display:wght@700&display=swap');
+
+
+body, html, #root {
+  min-height: 100vh;
+  background: #c97e2e94; /* crema más oscuro */
+}
+
+.sl-root {
+  max-width: 900px;
+  margin: 48px auto 0 auto;
+  padding: 40px 32px 64px 32px;
+  background: var(--white, #fff);
+  border-radius: 24px;
+  box-shadow: 0 24px 64px rgba(59, 42, 26, 0.13);
+  min-height: 70vh;
+  font-family: 'DM Sans', Arial, sans-serif;
+  animation: fadeUp 0.7s cubic-bezier(.4,0,.2,1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 2.5px solid #E2D9CE;
+}
+
+.sl-header {
+  margin-bottom: 32px;
+  text-align: center;
+  width: 100%;
+}
+
+.sl-title {
+  font-family: 'Playfair Display', serif;
+  color: #3B2A1A;
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+
+.sl-desc {
+  color: #3B2A1A;
+  font-size: 1.1rem;
+  margin-bottom: 24px;
+}
+
+.sl-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.sl-filtro {
+  background: none;
+  border: 2px solid #C97D2E;
+  color: #3B2A1A;
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 7px 20px;
+  border-radius: 22px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.sl-filtro--activo {
+  background: #C97D2E;
+  color: #FAF7F2;
+  border-color: #C97D2E;
+}
+
+.sl-cargando, .sl-vacio {
+  text-align: center;
+  color: #3B2A1A;
+  font-size: 1.2rem;
+  margin-top: 48px;
+}
+
+.sl-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  margin-top: 32px;
+  width: 100%;
+}
+
+.sl-card {
+  background: #FAF7F2; /* crema claro, pero más notorio sobre el panel blanco */
+  border-radius: 18px;
+  box-shadow: 0 2px 12px 0 rgba(60,42,26,0.10);
+  padding: 28px 22px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: box-shadow 0.2s;
+  border: 1.5px solid #E2D9CE;
+  min-height: 220px;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeUpCard 0.7s cubic-bezier(.4,0,.2,1) forwards;
+}
+
+.sl-card__nombre {
+  font-family: 'Playfair Display', serif;
+  color: #3B2A1A;
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+}
+
+.sl-card__tipo {
+  color: #C97D2E;
+  font-weight: 500;
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.sl-card__desc {
+  color: #3B2A1A;
+  font-size: 1rem;
+  margin-bottom: 18px;
+}
+
+.sl-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sl-card__precio {
+  color: #3B2A1A;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.sl-card__direccion {
+  color: #3B2A1A;
+  font-size: 0.98rem;
+}
+
+@media (max-width: 900px) {
+  .sl-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .sl-root {
+    padding: 24px 8px 40px 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .sl-grid {
+    grid-template-columns: 1fr;
+  }
+  .sl-root {
+    padding: 12px 0 32px 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fadeUpCard {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fade-up .sl-card {
+  animation: fadeUpCard 0.7s cubic-bezier(.4,0,.2,1) forwards;
+}
