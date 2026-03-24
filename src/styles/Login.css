@@ -224,21 +224,20 @@ html, body, #root {
 }
 .lp-main::after {
   content: '';
-.login-full-bg {
-  min-height: 100vh;
-  width: 100vw;
-  background: linear-gradient(135deg, #3B2A1A 70%, #C97D2E 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 10;
-  overflow: auto;
+  bottom: -120px;
+  left: -120px;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(122,158,126,0.08), transparent 70%);
+  pointer-events: none;
 }
+
+.lp-card {
+  width: min(100%, 520px);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
   border-radius: var(--radius-lg);
   padding: 3rem 2.8rem;
   box-shadow: var(--shadow-card), 0 1px 0 rgba(255,255,255,0.8) inset;

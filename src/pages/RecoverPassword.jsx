@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/RecoverPassword.css';
-// import { recuperarContrasena } from '../firebase/auth';
+import { recuperarContrasena } from '../firebase/auth';
 
 export default function RecoverPassword() {
   const [correo, setCorreo] = useState('');
@@ -14,9 +14,7 @@ export default function RecoverPassword() {
     setError('');
     setLoading(true);
     try {
-      // Simulación: reemplazar por await recuperarContrasena(correo)
-      // await recuperarContrasena(correo);
-      await new Promise(res => setTimeout(res, 1000)); // simula delay
+      await recuperarContrasena(correo);
       setEnviado(true);
     } catch (err) {
       setError('No encontramos una cuenta con ese correo. Verifica e intenta de nuevo.');

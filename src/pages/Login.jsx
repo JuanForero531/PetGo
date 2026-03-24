@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../styles/Login.css';
-// import { loginConCorreo, loginConGoogle } from '../firebase/auth';
+import { loginConCorreo, loginConGoogle } from '../firebase/auth';
 
 export default function Login() {
   const [correo, setCorreo] = useState('');
@@ -16,17 +16,12 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      // Simulación: reemplazar por await loginConCorreo(correo, password)
-      const user = {
-        rol: correo === 'admin@admin.com' ? 'admin'
-          : correo === 'proveedor@proveedor.com' ? 'proveedor'
-          : 'usuario'
-      };
-      if (user.rol === 'proveedor') navigate('/proveedor/nuevo');
-      else if (user.rol === 'admin') navigate('/admin/dashboard');
-      else navigate('/');
+      const { perfil } = await loginConCorreo(correo, password);
+      if (perfil?.rol === 'proveedor') navigate('/proveedor/nuevo');
+      else if (perfil?.rol === 'admin') navigate('/admin/dashboard');
+      else navigate('/servicios');
     } catch (err) {
-      setError('Correo o contraseña incorrectos.');
+      setError(err?.message || 'Correo o contraseña incorrectos.');
     } finally {
       setLoading(false);
     }
@@ -36,13 +31,12 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      // Simulación: reemplazar por await loginConGoogle()
-      const user = { rol: 'usuario' };
-      if (user.rol === 'proveedor') navigate('/proveedor/nuevo');
-      else if (user.rol === 'admin') navigate('/admin/dashboard');
-      else navigate('/');
+      const { perfil } = await loginConGoogle();
+      if (perfil?.rol === 'proveedor') navigate('/proveedor/nuevo');
+      else if (perfil?.rol === 'admin') navigate('/admin/dashboard');
+      else navigate('/servicios');
     } catch (err) {
-      setError('No se pudo iniciar sesión con Google.');
+      setError(err?.message || 'No se pudo iniciar sesión con Google.');
     } finally {
       setLoading(false);
     }
