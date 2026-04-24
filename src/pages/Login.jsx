@@ -14,9 +14,28 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Validación de campos requeridos
+    if (!correo?.trim()) {
+      setError('Por favor ingresa tu correo.');
+      return;
+    }
+
+    if (!password) {
+      setError('Por favor ingresa tu contraseña.');
+      return;
+    }
+
+    // Validación de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(correo.trim())) {
+      setError('Por favor ingresa un correo válido.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const { perfil } = await loginConCorreo(correo, password);
+      const { perfil } = await loginConCorreo(correo.trim(), password);
       if (perfil?.rol === 'proveedor') navigate('/proveedor/nuevo');
       else if (perfil?.rol === 'admin') navigate('/admin/dashboard');
       else navigate('/servicios');

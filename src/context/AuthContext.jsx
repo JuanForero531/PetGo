@@ -11,6 +11,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+    }, 8000);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
 
@@ -18,6 +22,7 @@ export function AuthProvider({ children }) {
         setUser(null);
         setPerfil(null);
         setLoading(false);
+        clearTimeout(timeoutId);
         return;
       }
 
@@ -29,13 +34,29 @@ export function AuthProvider({ children }) {
         setPerfil(null);
       } finally {
         setLoading(false);
+        clearTimeout(timeoutId);
       }
+    }, () => {
+      setUser(null);
+      setPerfil(null);
+      setLoading(false);
+      clearTimeout(timeoutId);
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, []);
 
-  const value = useMemo(() => ({ user, perfil, loading }), [user, perfil, loading]);
+  const refreshPerfil = async () => {
+    if (!user?.uid) return null;
+    const perfilUsuario = await obtenerUsuario(user.uid);
+    setPerfil(perfilUsuario);
+    return perfilUsuario;
+  };
+
+  const value = useMemo(() => ({ user, perfil, loading, refreshPerfil }), [user, perfil, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

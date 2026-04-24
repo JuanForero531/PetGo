@@ -23,6 +23,9 @@ const servicios = [
 	'Corte de uñas',
 	'Paseo de mascotas',
 	'Cuidado a domicilio',
+	'Vacunación',
+	'Peinado para mascotas',
+	'Atención veterinaria',
 ];
 
 export default function Register() {
@@ -60,9 +63,56 @@ export default function Register() {
 		e.preventDefault();
 		setError('');
 
+		// Validación de campos requeridos
+		if (!form.nombre?.trim()) {
+			setError('El nombre es requerido.');
+			return;
+		}
+		if (!form.apellido?.trim()) {
+			setError('El apellido es requerido.');
+			return;
+		}
+		if (!form.correo?.trim()) {
+			setError('El correo es requerido.');
+			return;
+		}
+		if (!form.telefono?.trim()) {
+			setError('El teléfono es requerido.');
+			return;
+		}
+
+		// Validación de email
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(form.correo.trim())) {
+			setError('Por favor ingresa un correo válido.');
+			return;
+		}
+
+		// Validación de contraseña
+		if (!form.password || form.password.length < 6) {
+			setError('La contraseña debe tener al menos 6 caracteres.');
+			return;
+		}
+
 		if (form.password !== form.confirmPassword) {
 			setError('Las contraseñas no coinciden.');
 			return;
+		}
+
+		// Validaciones para proveedores
+		if (form.rol === 'proveedor') {
+			if (!form.negocio?.trim()) {
+				setError('El nombre del negocio es requerido para proveedores.');
+				return;
+			}
+			if (!form.tipoServicio) {
+				setError('El tipo de servicio es requerido para proveedores.');
+				return;
+			}
+			if (!form.direccion?.trim()) {
+				setError('La dirección es requerida para proveedores.');
+				return;
+			}
 		}
 
 		if (!form.terminos) {
@@ -84,14 +134,14 @@ export default function Register() {
 		} = form;
 
 		try {
-			await registrarUsuario(correo, password, {
-				nombre,
-				apellido,
-				telefono,
+			await registrarUsuario(correo.trim(), password, {
+				nombre: nombre.trim(),
+				apellido: apellido.trim(),
+				telefono: telefono.trim(),
 				rol,
-				nombreNegocio: negocio,
-				tipoServicio,
-				direccion,
+				nombreNegocio: rol === 'proveedor' ? negocio.trim() : '',
+				tipoServicio: rol === 'proveedor' ? tipoServicio : '',
+				direccion: rol === 'proveedor' ? direccion.trim() : '',
 			});
 			setCreated(true);
 			if (rol === 'proveedor') {

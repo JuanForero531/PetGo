@@ -1,13 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import '../styles/ServiceList.css';
 import { obtenerServicios } from '../firebase/firestore';
-import { cerrarSesion } from '../firebase/auth';
-import { useAuth } from '../context/AuthContext';
+import ServiceCard from '../components/ServiceCard';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 export default function ServiceList() {
-  const navigate = useNavigate();
-  const { user, perfil } = useAuth();
   const [servicios, setServicios] = useState([]);
   const [filtro, setFiltro] = useState('Todos');
   const [busqueda, setBusqueda] = useState('');
@@ -32,16 +30,6 @@ export default function ServiceList() {
 
     cargarServicios();
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      await cerrarSesion();
-      navigate('/login');
-    } catch (err) {
-      console.error('Error al cerrar sesion:', err);
-      setError('No se pudo cerrar sesion.');
-    }
-  };
 
   const tiposDisponibles = useMemo(() => {
     const tiposUnicos = [...new Set(servicios.map(servicio => servicio.tipo).filter(Boolean))]
@@ -72,88 +60,145 @@ export default function ServiceList() {
     });
   }, [servicios, filtro, busqueda]);
 
+  const serviciosDestacados = useMemo(() => {
+    return [...serviciosFiltrados]
+      .sort((a, b) => Number(b.precio || 0) - Number(a.precio || 0))
+      .slice(0, 8);
+  }, [serviciosFiltrados]);
+
+  const tiposTop = useMemo(() => tiposDisponibles.filter((tipo) => tipo !== 'Todos').slice(0, 6), [tiposDisponibles]);
+
   return (
-    <div className="sl-root">
-      <header className="sl-header">
-        <div className="sl-actions">
-          {perfil?.rol === 'proveedor' && (
-            <button className="sl-action-btn" type="button" onClick={() => navigate('/proveedor/nuevo')}>
-              Mi modulo proveedor
-            </button>
-          )}
-          {perfil?.rol === 'admin' && (
-            <button className="sl-action-btn" type="button" onClick={() => navigate('/admin/dashboard')}>
-              Panel admin
-            </button>
-          )}
-          {user && (
-            <button className="sl-action-btn sl-action-btn--ghost" type="button" onClick={handleLogout}>
-              Cerrar sesion
-            </button>
-          )}
-        </div>
-        <h1 className="sl-title">Servicios para mascotas en Tunja</h1>
-        <p className="sl-desc">Encuentra y agenda servicios para tu mascota con proveedores de confianza en Tunja, Boyacá.</p>
-
-        <div className="sl-controls">
-          <label className="sl-field" htmlFor="buscar-servicio">
-            <span className="sl-field__label">Buscar</span>
-            <input
-              id="buscar-servicio"
-              className="sl-input"
-              type="search"
-              placeholder="Negocio, servicio o zona"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
-          </label>
-
-          <label className="sl-field" htmlFor="filtrar-tipo">
-            <span className="sl-field__label">Tipo de servicio</span>
-            <select
-              id="filtrar-tipo"
-              className="sl-select"
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value)}
-            >
-              {tiposDisponibles.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {tipo}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="sl-meta" aria-live="polite">
-            <span className="sl-meta__count">{serviciosFiltrados.length}</span>
-            <span className="sl-meta__text">resultados de {servicios.length}</span>
-          </div>
-        </div>
-      </header>
-
-      {cargando ? (
-        <div className="sl-cargando">Cargando servicios...</div>
-      ) : error ? (
-        <div className="sl-vacio">{error}</div>
-      ) : serviciosFiltrados.length === 0 ? (
-        <div className="sl-vacio">No hay servicios disponibles.</div>
-      ) : (
-        <div className="sl-grid fade-up">
-          {serviciosFiltrados.map(servicio => (
-            <div className="sl-card" key={servicio.id}>
-              <div className="sl-card__top">
-                <span className="sl-card__badge">{servicio.tipo}</span>
+    <div className="sl-page">
+      <Navbar />
+      <div className="sl-root">
+        <header className="sl-header">
+          <section className="sl-hero">
+            <article className="sl-hero__main">
+              <p className="sl-hero__eyebrow">Marketplace PetGo</p>
+              <h1 className="sl-title">Servicios para mascotas en Tunja</h1>
+              <p className="sl-desc">Encuentra y agenda servicios con proveedores verificados en Tunja, Boyacá.</p>
+              <div className="sl-hero__chips">
+                <span className="sl-chip">Atención en casa</span>
+                <span className="sl-chip">Pago acordado con proveedor</span>
+                <span className="sl-chip">Perfiles verificados</span>
               </div>
-              <h2 className="sl-card__nombre">{servicio.nombreNegocio}</h2>
-              <p className="sl-card__desc">{servicio.descripcion}</p>
-              <div className="sl-card__info">
-                <span className="sl-card__precio">${servicio.precio.toLocaleString('es-CO')}</span>
-                <span className="sl-card__direccion">{servicio.direccion}</span>
+            </article>
+            <aside className="sl-hero__aside">
+              <div className="sl-promo sl-promo--gold">
+                <p className="sl-promo__title">Top de servicios</p>
+                <strong>{servicios.length}</strong>
+                <span>proveedores activos en la plataforma</span>
               </div>
+              <div className="sl-promo sl-promo--brown">
+                <p className="sl-promo__title">Categorías</p>
+                <strong>{tiposDisponibles.length - 1}</strong>
+                <span>tipos para elegir</span>
+              </div>
+            </aside>
+          </section>
+
+          <section className="sl-utility">
+            <article>
+              <h3>Reserva fácil</h3>
+              <p>Encuentra y contacta al proveedor en minutos.</p>
+            </article>
+            <article>
+              <h3>Calidad local</h3>
+              <p>Servicios pensados para mascotas en Tunja.</p>
+            </article>
+            <article>
+              <h3>Todo en un sitio</h3>
+              <p>Baño, corte, paseos y cuidado especializado.</p>
+            </article>
+          </section>
+
+          <div className="sl-controls">
+            <label className="sl-field" htmlFor="buscar-servicio">
+              <span className="sl-field__label">Buscar</span>
+              <input
+                id="buscar-servicio"
+                className="sl-input"
+                type="search"
+                placeholder="Negocio, servicio o zona"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
+            </label>
+
+            <label className="sl-field" htmlFor="filtrar-tipo">
+              <span className="sl-field__label">Tipo de servicio</span>
+              <select
+                id="filtrar-tipo"
+                className="sl-select"
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+              >
+                {tiposDisponibles.map((tipo) => (
+                  <option key={tipo} value={tipo}>
+                    {tipo}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="sl-meta" aria-live="polite">
+              <span className="sl-meta__count">{serviciosFiltrados.length}</span>
+              <span className="sl-meta__text">resultados de {servicios.length}</span>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+
+          <div className="sl-tipos">
+            {tiposTop.map((tipo) => (
+              <button key={tipo} type="button" className={`sl-tipo-btn ${filtro === tipo ? 'sl-tipo-btn--active' : ''}`} onClick={() => setFiltro(tipo)}>
+                {tipo}
+              </button>
+            ))}
+            {tiposTop.length > 0 && (
+              <button type="button" className={`sl-tipo-btn ${filtro === 'Todos' ? 'sl-tipo-btn--active' : ''}`} onClick={() => setFiltro('Todos')}>
+                Ver todos
+              </button>
+            )}
+          </div>
+        </header>
+
+        {cargando ? (
+          <div className="sl-cargando">Cargando servicios...</div>
+        ) : error ? (
+          <div className="sl-vacio">{error}</div>
+        ) : serviciosFiltrados.length === 0 ? (
+          <div className="sl-vacio">No hay servicios disponibles.</div>
+        ) : (
+          <>
+            <section className="sl-section">
+              <div className="sl-section__head">
+                <h2>Servicios destacados</h2>
+                <span>Selección por precio y relevancia</span>
+              </div>
+              <div className="sl-scroller">
+                {serviciosDestacados.map((servicio) => (
+                  <div className="sl-scroller__item" key={`destacado-${servicio.id}`}>
+                    <ServiceCard servicio={servicio} />
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="sl-section">
+              <div className="sl-section__head">
+                <h2>Explora todos los servicios</h2>
+                <span>{serviciosFiltrados.length} disponibles ahora</span>
+              </div>
+              <div className="sl-grid fade-up">
+                {serviciosFiltrados.map((servicio) => (
+                  <ServiceCard key={servicio.id} servicio={servicio} />
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+      <Footer />
     </div>
   );
 }

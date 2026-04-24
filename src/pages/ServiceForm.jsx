@@ -3,12 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
 	crearServicio,
+	actualizarFotoPerfilProveedor,
+	actualizarPerfilProveedor,
 	editarServicio,
 	eliminarServicio,
 	obtenerServicio,
 	obtenerServiciosDelProveedor,
 } from '../firebase/firestore';
 import { cerrarSesion } from '../firebase/auth';
+import { subirFotoProveedor, validarImagenPerfil } from '../firebase/storage';
 import '../styles/ProviderModule.css';
 
 const TIPOS = [
@@ -17,6 +20,9 @@ const TIPOS = [
 	'Corte de uñas',
 	'Paseo de mascotas',
 	'Cuidado a domicilio',
+	'Vacunación',
+	'Peinado para mascotas',
+	'Atención veterinaria',
 ];
 
 const initialForm = {
@@ -30,16 +36,36 @@ const initialForm = {
 export default function ServiceForm() {
 	const navigate = useNavigate();
 	const { id } = useParams();
-	const { user, perfil } = useAuth();
+	const { user, perfil, refreshPerfil } = useAuth();
 
 	const [form, setForm] = useState(initialForm);
 	const [misServicios, setMisServicios] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
+	const [savingPerfil, setSavingPerfil] = useState(false);
+	const [subiendoFoto, setSubiendoFoto] = useState(false);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
+	const [fotoArchivo, setFotoArchivo] = useState(null);
+	const [fotoPreview, setFotoPreview] = useState('');
+	const [perfilForm, setPerfilForm] = useState({
+		nombre: '',
+		apellido: '',
+		correo: '',
+		telefono: '',
+		nombreNegocio: '',
+		tipoServicio: '',
+		direccion: '',
+	});
 
 	const editMode = useMemo(() => Boolean(id), [id]);
+	const [activeTab, setActiveTab] = useState(editMode ? 'servicios' : 'perfil');
+
+	useEffect(() => {
+		if (editMode) {
+			setActiveTab('servicios');
+		}
+	}, [editMode]);
 
 	useEffect(() => {
 		if (!user?.uid) {
@@ -90,6 +116,26 @@ export default function ServiceForm() {
 		cargar();
 	}, [user?.uid, perfil?.nombreNegocio, perfil?.tipoServicio, perfil?.direccion, id, editMode, navigate]);
 
+	useEffect(() => {
+		setPerfilForm({
+			nombre: perfil?.nombre || '',
+			apellido: perfil?.apellido || '',
+			correo: perfil?.correo || '',
+			telefono: perfil?.telefono || '',
+			nombreNegocio: perfil?.nombreNegocio || '',
+			tipoServicio: perfil?.tipoServicio || '',
+			direccion: perfil?.direccion || '',
+		});
+	}, [perfil]);
+
+	useEffect(() => {
+		return () => {
+			if (fotoPreview) {
+				URL.revokeObjectURL(fotoPreview);
+			}
+		};
+	}, [fotoPreview]);
+
 	const recargarServicios = async () => {
 		if (!user?.uid) return;
 		const serviciosProveedor = await obtenerServiciosDelProveedor(user.uid);
@@ -99,6 +145,117 @@ export default function ServiceForm() {
 	const handleChange = (e) => {
 		const { name, value } = e.target;
 		setForm((prev) => ({ ...prev, [name]: value }));
+	};
+
+	const handlePerfilChange = (e) => {
+		const { name, value } = e.target;
+		setPerfilForm((prev) => ({ ...prev, [name]: value }));
+	};
+
+	const handleGuardarPerfil = async (e) => {
+		e.preventDefault();
+		setError('');
+		setSuccess('');
+
+		if (!user?.uid) {
+			setError('Sesión no válida.');
+			return;
+		}
+
+		if (!perfilForm.nombre.trim() || !perfilForm.apellido.trim()) {
+			setError('Nombre y apellido son requeridos.');
+			return;
+		}
+
+		if (!perfilForm.correo.trim()) {
+			setError('El correo es requerido.');
+			return;
+		}
+
+		if (!perfilForm.telefono.trim()) {
+			setError('El teléfono es requerido.');
+			return;
+		}
+
+		if (!perfilForm.nombreNegocio.trim()) {
+			setError('El nombre del negocio es requerido.');
+			return;
+		}
+
+		if (!perfilForm.tipoServicio) {
+			setError('Selecciona el tipo de servicio principal.');
+			return;
+		}
+
+		if (!perfilForm.direccion.trim()) {
+			setError('La dirección es requerida.');
+			return;
+		}
+
+		setSavingPerfil(true);
+		try {
+			await actualizarPerfilProveedor(user.uid, {
+				nombre: perfilForm.nombre.trim(),
+				apellido: perfilForm.apellido.trim(),
+				correo: perfilForm.correo.trim(),
+				telefono: perfilForm.telefono.trim(),
+				nombreNegocio: perfilForm.nombreNegocio.trim(),
+				tipoServicio: perfilForm.tipoServicio,
+				direccion: perfilForm.direccion.trim(),
+			});
+
+			await refreshPerfil();
+			setSuccess('Perfil actualizado correctamente.');
+		} catch (err) {
+			console.error('Error al actualizar perfil:', err);
+			setError(err.message || 'No se pudo actualizar el perfil.');
+		} finally {
+			setSavingPerfil(false);
+		}
+	};
+
+	const handleFotoChange = (e) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		try {
+			validarImagenPerfil(file);
+			setFotoArchivo(file);
+			if (fotoPreview) {
+				URL.revokeObjectURL(fotoPreview);
+			}
+			setFotoPreview(URL.createObjectURL(file));
+			setError('');
+		} catch (err) {
+			setError(err.message || 'Imagen no válida.');
+		}
+	};
+
+	const handleGuardarFoto = async () => {
+		if (!user?.uid) {
+			setError('Sesión no válida.');
+			return;
+		}
+
+		if (!fotoArchivo) {
+			setError('Selecciona una imagen antes de guardar.');
+			return;
+		}
+
+		setSubiendoFoto(true);
+		setError('');
+		setSuccess('');
+		try {
+			const url = await subirFotoProveedor(user.uid, fotoArchivo);
+			await actualizarFotoPerfilProveedor(user.uid, url);
+			setSuccess('Foto de perfil actualizada correctamente.');
+			setFotoArchivo(null);
+		} catch (err) {
+			console.error('Error al subir foto de perfil:', err);
+			setError(err.message || 'No se pudo actualizar la foto de perfil.');
+		} finally {
+			setSubiendoFoto(false);
+		}
 	};
 
 	const handleSubmit = async (e) => {
@@ -111,13 +268,40 @@ export default function ServiceForm() {
 			return;
 		}
 
-		if (!form.nombreNegocio || !form.tipo || !form.descripcion || !form.precio || !form.direccion) {
-			setError('Completa todos los campos del servicio antes de continuar.');
+		// Validación de campos requeridos
+		if (!form.nombreNegocio?.trim()) {
+			setError('El nombre del negocio es requerido.');
 			return;
 		}
 
-		if (Number(form.precio) <= 0) {
-			setError('El precio debe ser mayor a cero.');
+		if (!form.tipo) {
+			setError('Debes seleccionar un tipo de servicio.');
+			return;
+		}
+
+		if (!form.descripcion?.trim()) {
+			setError('La descripción es requerida.');
+			return;
+		}
+
+		if (form.descripcion.trim().length < 10) {
+			setError('La descripción debe tener al menos 10 caracteres.');
+			return;
+		}
+
+		if (!form.precio) {
+			setError('El precio es requerido.');
+			return;
+		}
+
+		const precioNum = Number(form.precio);
+		if (isNaN(precioNum) || precioNum <= 0) {
+			setError('El precio debe ser un número mayor a cero.');
+			return;
+		}
+
+		if (!form.direccion?.trim()) {
+			setError('La dirección es requerida.');
 			return;
 		}
 
@@ -125,21 +309,21 @@ export default function ServiceForm() {
 		try {
 			if (editMode && id) {
 				await editarServicio(id, {
-					nombreNegocio: form.nombreNegocio,
+					nombreNegocio: form.nombreNegocio.trim(),
 					tipo: form.tipo,
-					descripcion: form.descripcion,
-					precio: Number(form.precio),
-					direccion: form.direccion,
+					descripcion: form.descripcion.trim(),
+					precio: precioNum,
+					direccion: form.direccion.trim(),
 				});
 				setSuccess('Servicio actualizado correctamente.');
 				navigate('/proveedor/nuevo', { replace: true });
 			} else {
 				await crearServicio(user.uid, {
-					nombreNegocio: form.nombreNegocio,
+					nombreNegocio: form.nombreNegocio.trim(),
 					tipo: form.tipo,
-					descripcion: form.descripcion,
-					precio: Number(form.precio),
-					direccion: form.direccion,
+					descripcion: form.descripcion.trim(),
+					precio: precioNum,
+					direccion: form.direccion.trim(),
 				});
 				setSuccess('Servicio creado correctamente.');
 				setForm({
@@ -208,16 +392,133 @@ export default function ServiceForm() {
 			{error && <div className="pm-alert pm-alert--error">{error}</div>}
 			{success && <div className="pm-alert pm-alert--success">{success}</div>}
 
-			<section className="pm-panel">
-				<h2 className="pm-subtitle">{editMode ? 'Editar servicio' : 'Crear nuevo servicio'}</h2>
-				<form className="pm-form" onSubmit={handleSubmit}>
+			<div className="pm-tabs" role="tablist" aria-label="Módulo del proveedor">
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === 'perfil'}
+					className={`pm-tab ${activeTab === 'perfil' ? 'pm-tab--active' : ''}`}
+					onClick={() => setActiveTab('perfil')}
+				>
+					<span className="pm-tab__icon" aria-hidden="true">👤</span>
+					<span>Mi perfil</span>
+				</button>
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === 'servicios'}
+					className={`pm-tab ${activeTab === 'servicios' ? 'pm-tab--active' : ''}`}
+					onClick={() => setActiveTab('servicios')}
+				>
+					<span className="pm-tab__icon" aria-hidden="true">🧰</span>
+					<span>Mis servicios</span>
+				</button>
+			</div>
+
+			{activeTab === 'perfil' && (
+				<div className="pm-tab-content" role="tabpanel" aria-label="Editar perfil">
+				<section className="pm-panel">
+					<h2 className="pm-subtitle">Editar perfil del proveedor</h2>
+					<form className="pm-form" onSubmit={handleGuardarPerfil}>
+						<div className="pm-row">
+							<label className="pm-field">
+								Nombre
+								<input
+									name="nombre"
+									value={perfilForm.nombre}
+									onChange={handlePerfilChange}
+									required
+								/>
+							</label>
+							<label className="pm-field">
+								Apellido
+								<input
+									name="apellido"
+									value={perfilForm.apellido}
+									onChange={handlePerfilChange}
+									required
+								/>
+							</label>
+						</div>
+
+						<div className="pm-row">
+							<label className="pm-field">
+								Correo de contacto
+								<input
+									name="correo"
+									type="email"
+									value={perfilForm.correo}
+									onChange={handlePerfilChange}
+									required
+								/>
+							</label>
+							<label className="pm-field">
+								Teléfono
+								<input
+									name="telefono"
+									value={perfilForm.telefono}
+									onChange={handlePerfilChange}
+									required
+								/>
+							</label>
+						</div>
+
+						<div className="pm-row">
+							<label className="pm-field">
+								Nombre del negocio
+								<input
+									name="nombreNegocio"
+									value={perfilForm.nombreNegocio}
+									onChange={handlePerfilChange}
+									required
+								/>
+							</label>
+							<label className="pm-field">
+								Servicio principal
+								<select
+									name="tipoServicio"
+									value={perfilForm.tipoServicio}
+									onChange={handlePerfilChange}
+									required
+								>
+									<option value="" disabled>Selecciona un tipo</option>
+									{TIPOS.map((tipo) => (
+										<option key={`perfil-${tipo}`} value={tipo}>{tipo}</option>
+									))}
+								</select>
+							</label>
+						</div>
+
+						<label className="pm-field">
+							Dirección
+							<input
+								name="direccion"
+								value={perfilForm.direccion}
+								onChange={handlePerfilChange}
+								required
+							/>
+						</label>
+
+						<button type="submit" className="pm-submit" disabled={savingPerfil}>
+							{savingPerfil ? 'Guardando perfil...' : 'Guardar perfil'}
+						</button>
+					</form>
+				</section>
+				</div>
+			)}
+
+			{activeTab === 'servicios' && (
+				<div className="pm-tab-content" role="tabpanel" aria-label="Gestionar servicios">
+					<section className="pm-panel">
+						<h2 className="pm-subtitle">{editMode ? 'Editar servicio' : 'Crear nuevo servicio'}</h2>
+						<form className="pm-form" onSubmit={handleSubmit}>
 					<label className="pm-field">
-						Nombre del negocio
+						Nombre del servicio
 						<input
 							name="nombreNegocio"
 							value={form.nombreNegocio}
 							onChange={handleChange}
-							placeholder="Ej: PetCare Tunja"
+							placeholder="Ej: Baño premium para perros"
 							required
 						/>
 					</label>
@@ -273,35 +574,37 @@ export default function ServiceForm() {
 					<button type="submit" className="pm-submit" disabled={saving}>
 						{saving ? 'Guardando...' : editMode ? 'Actualizar servicio' : 'Publicar servicio'}
 					</button>
-				</form>
-			</section>
+						</form>
+					</section>
 
-			<section className="pm-panel">
-				<h2 className="pm-subtitle">Mis servicios activos</h2>
-				{misServicios.length === 0 ? (
-					<p className="pm-empty">Aun no has publicado servicios.</p>
-				) : (
-					<div className="pm-grid">
-						{misServicios.map((servicio) => (
-							<article className="pm-card" key={servicio.id}>
-								<h3>{servicio.nombreNegocio}</h3>
-								<span className="pm-chip">{servicio.tipo}</span>
-								<p>{servicio.descripcion}</p>
-								<strong>${Number(servicio.precio || 0).toLocaleString('es-CO')}</strong>
-								<small>{servicio.direccion}</small>
-								<div className="pm-card-actions">
-									<button type="button" onClick={() => navigate(`/proveedor/editar/${servicio.id}`)}>
-										Editar
-									</button>
-									<button type="button" className="danger" onClick={() => handleEliminar(servicio.id)}>
-										Eliminar
-									</button>
-								</div>
-							</article>
-						))}
-					</div>
-				)}
-			</section>
+					<section className="pm-panel">
+						<h2 className="pm-subtitle">Mis servicios activos</h2>
+						{misServicios.length === 0 ? (
+							<p className="pm-empty">Aun no has publicado servicios.</p>
+						) : (
+							<div className="pm-grid">
+								{misServicios.map((servicio) => (
+									<article className="pm-card" key={servicio.id}>
+										<h3>{servicio.nombreNegocio}</h3>
+										<span className="pm-chip">{servicio.tipo}</span>
+										<p>{servicio.descripcion}</p>
+										<strong>${Number(servicio.precio || 0).toLocaleString('es-CO')}</strong>
+										<small>{servicio.direccion}</small>
+										<div className="pm-card-actions">
+											<button type="button" onClick={() => navigate(`/proveedor/editar/${servicio.id}`)}>
+												Editar
+											</button>
+											<button type="button" className="danger" onClick={() => handleEliminar(servicio.id)}>
+												Eliminar
+											</button>
+										</div>
+									</article>
+								))}
+							</div>
+						)}
+					</section>
+				</div>
+			)}
 		</div>
 	);
 }

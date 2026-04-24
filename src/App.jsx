@@ -4,8 +4,12 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import RecoverPassword from './pages/RecoverPassword';
 import ServiceList from './pages/ServiceList';
+import ServiceDetail from './pages/ServiceDetail';
 import ServiceForm from './pages/ServiceForm';
+import ProviderProfile from './pages/ProviderProfile';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminUsers from './pages/AdminUsers';
+import AdminServices from './pages/AdminServices';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 
@@ -16,6 +20,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/servicios" element={<ServiceList />} />
+          <Route path="/servicios/:id" element={<ServiceDetail />} />
+          <Route path="/proveedor/:id" element={<ProviderProfile />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
           <Route path="/recuperar" element={<RecoverPassword />} />
@@ -23,7 +29,7 @@ function App() {
           <Route
             path="/proveedor/nuevo"
             element={(
-              <ProtectedRoute roles={['proveedor']}>
+              <ProtectedRoute roles={['proveedor']} unauthorizedTo="/servicios">
                 <ServiceForm />
               </ProtectedRoute>
             )}
@@ -31,7 +37,7 @@ function App() {
           <Route
             path="/proveedor/editar/:id"
             element={(
-              <ProtectedRoute roles={['proveedor']}>
+              <ProtectedRoute roles={['proveedor']} unauthorizedTo="/servicios">
                 <ServiceForm />
               </ProtectedRoute>
             )}
@@ -39,7 +45,7 @@ function App() {
           <Route
             path="/admin/dashboard"
             element={(
-              <ProtectedRoute roles={['admin']}>
+              <ProtectedRoute roles={['admin']} unauthorizedTo="/servicios">
                 <AdminDashboard />
               </ProtectedRoute>
             )}
@@ -47,8 +53,16 @@ function App() {
           <Route
             path="/admin/usuarios"
             element={(
-              <ProtectedRoute roles={['admin']}>
-                <AdminDashboard />
+              <ProtectedRoute roles={['admin']} unauthorizedTo="/servicios">
+                <AdminUsers />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/servicios"
+            element={(
+              <ProtectedRoute roles={['admin']} unauthorizedTo="/servicios">
+                <AdminServices />
               </ProtectedRoute>
             )}
           />

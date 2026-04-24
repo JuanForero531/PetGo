@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function esAdmin() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    match /usuarios/{userId} {
+      allow read: if request.auth != null && 
+                     (request.auth.uid == userId || esAdmin());
+      
+      allow update: if request.auth != null && (
+                      esAdmin() ||
+                      (
+                        request.auth.uid == userId &&
+                        request.resource.data.rol == resource.data.rol &&
+                        request.resource.data.activo == resource.data.activo
+                      )
+                    );
+      
+      allow create: if request.auth != null;
+    }
+
+    match /servicios/{servicioId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && 
+                       (resource.data.proveedorId == request.auth.uid || esAdmin());
+      allow delete: if request.auth != null && 
+                       (resource.data.proveedorId == request.auth.uid || esAdmin());
+    }
+  }
+}
