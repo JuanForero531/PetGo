@@ -15,26 +15,26 @@ PetGo es una plataforma digital que conecta dueños de mascotas con proveedores 
 ## Características Principales
 
 ### Para Usuarios
-- ✅ Registro y autenticación
-- ✅ Explorar servicios disponibles
-- ✅ Ver detalles de servicios
-- ✅ Gestionar cuenta
+-  Registro y autenticación
+-  Explorar servicios disponibles
+-  Ver detalles de servicios
+-  Gestionar cuenta
 
 ### Para Proveedores
-- ✅ Crear y editar servicios
-- ✅ Gestionar catálogo de servicios
-- ✅ Ver métricas de su negocio
-- ✅ Opción de proveedor premium con botón de pago por PayPal
+-  Crear y editar servicios
+-  Gestionar catálogo de servicios
+-  Ver métricas de su negocio
+-  Opción de proveedor premium con botón de pago por PayPal
 
 ### Para Administradores (Sprint 4)
-- ✅ Dashboard con métricas de la plataforma
-- ✅ **Gestión completa de usuarios** (NEW)
+-  Dashboard con métricas de la plataforma
+-  **Gestión completa de usuarios** (NEW)
   - Listar todos los usuarios
   - Buscar y filtrar usuarios
   - Cambiar roles de usuarios
   - Desactivar/Activar cuentas
-- ✅ Visualización de análisis de servicios
-- ✅ Activar o desactivar el estado premium de proveedores
+-  Visualización de análisis de servicios
+-  Activar o desactivar el estado premium de proveedores
 
 ## Instalación y Setup
 
