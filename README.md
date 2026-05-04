@@ -24,6 +24,7 @@ PetGo es una plataforma digital que conecta dueños de mascotas con proveedores 
 - ✅ Crear y editar servicios
 - ✅ Gestionar catálogo de servicios
 - ✅ Ver métricas de su negocio
+- ✅ Opción de proveedor premium con botón de pago por PayPal
 
 ### Para Administradores (Sprint 4)
 - ✅ Dashboard con métricas de la plataforma
@@ -33,6 +34,7 @@ PetGo es una plataforma digital que conecta dueños de mascotas con proveedores 
   - Cambiar roles de usuarios
   - Desactivar/Activar cuentas
 - ✅ Visualización de análisis de servicios
+- ✅ Activar o desactivar el estado premium de proveedores
 
 ## Instalación y Setup
 
@@ -151,6 +153,8 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 ```
+
+Para el botón de premium del proveedor, configura también `VITE_PAYPAL_URL` con tu enlace directo de PayPal (por ejemplo, `https://www.paypal.com/paypalme/tuusuario`).
 
 ## Scripts Disponibles
 

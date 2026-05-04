@@ -76,6 +76,7 @@ export default function AdminDashboard() {
 						{ label: 'Usuarios totales', value: metricas.totalUsuarios },
 						{ label: 'Usuarios activos', value: metricas.usuariosActivos },
 						{ label: 'Proveedores', value: metricas.totalProveedores },
+						{ label: 'Proveedores premium', value: metricas.totalProveedoresPremium },
 						{ label: 'Administradores', value: metricas.totalAdmins },
 						{ label: 'Servicios activos', value: metricas.serviciosActivos },
 						{ label: 'Servicios inactivos', value: metricas.serviciosInactivos },

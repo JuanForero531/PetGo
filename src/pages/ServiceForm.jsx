@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
 	crearServicio,
-	actualizarFotoPerfilProveedor,
 	actualizarPerfilProveedor,
 	editarServicio,
 	eliminarServicio,
@@ -11,8 +10,9 @@ import {
 	obtenerServiciosDelProveedor,
 } from '../firebase/firestore';
 import { cerrarSesion } from '../firebase/auth';
-import { subirFotoProveedor, validarImagenPerfil } from '../firebase/storage';
 import '../styles/ProviderModule.css';
+
+const PAYPAL_LINK = import.meta.env.VITE_PAYPAL_URL || 'https://www.paypal.com/paypalme/tuusuario';
 
 const TIPOS = [
 	'Baño y secado',
@@ -43,11 +43,8 @@ export default function ServiceForm() {
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [savingPerfil, setSavingPerfil] = useState(false);
-	const [subiendoFoto, setSubiendoFoto] = useState(false);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
-	const [fotoArchivo, setFotoArchivo] = useState(null);
-	const [fotoPreview, setFotoPreview] = useState('');
 	const [perfilForm, setPerfilForm] = useState({
 		nombre: '',
 		apellido: '',
@@ -128,14 +125,6 @@ export default function ServiceForm() {
 		});
 	}, [perfil]);
 
-	useEffect(() => {
-		return () => {
-			if (fotoPreview) {
-				URL.revokeObjectURL(fotoPreview);
-			}
-		};
-	}, [fotoPreview]);
-
 	const recargarServicios = async () => {
 		if (!user?.uid) return;
 		const serviciosProveedor = await obtenerServiciosDelProveedor(user.uid);
@@ -211,50 +200,6 @@ export default function ServiceForm() {
 			setError(err.message || 'No se pudo actualizar el perfil.');
 		} finally {
 			setSavingPerfil(false);
-		}
-	};
-
-	const handleFotoChange = (e) => {
-		const file = e.target.files?.[0];
-		if (!file) return;
-
-		try {
-			validarImagenPerfil(file);
-			setFotoArchivo(file);
-			if (fotoPreview) {
-				URL.revokeObjectURL(fotoPreview);
-			}
-			setFotoPreview(URL.createObjectURL(file));
-			setError('');
-		} catch (err) {
-			setError(err.message || 'Imagen no válida.');
-		}
-	};
-
-	const handleGuardarFoto = async () => {
-		if (!user?.uid) {
-			setError('Sesión no válida.');
-			return;
-		}
-
-		if (!fotoArchivo) {
-			setError('Selecciona una imagen antes de guardar.');
-			return;
-		}
-
-		setSubiendoFoto(true);
-		setError('');
-		setSuccess('');
-		try {
-			const url = await subirFotoProveedor(user.uid, fotoArchivo);
-			await actualizarFotoPerfilProveedor(user.uid, url);
-			setSuccess('Foto de perfil actualizada correctamente.');
-			setFotoArchivo(null);
-		} catch (err) {
-			console.error('Error al subir foto de perfil:', err);
-			setError(err.message || 'No se pudo actualizar la foto de perfil.');
-		} finally {
-			setSubiendoFoto(false);
 		}
 	};
 
@@ -387,6 +332,33 @@ export default function ServiceForm() {
 				</div>
 				<h1 className="pm-title">Modulo de proveedor</h1>
 				<p className="pm-desc">Publica y administra tus servicios para mascotas en Tunja.</p>
+				{perfil?.rol === 'proveedor' && (
+					<div className={`pm-premium ${perfil?.esPremium ? 'pm-premium--active' : ''}`}>
+						<div>
+							<p className="pm-premium__eyebrow">Estado premium</p>
+							<h2 className="pm-premium__title">
+								{perfil?.esPremium ? 'Tu perfil ya está destacado' : 'Hazte premium y gana visibilidad'}
+							</h2>
+							<p className="pm-premium__desc">
+								{perfil?.esPremium
+									? 'Tu perfil puede mostrarse antes en el marketplace y destacar frente a otros proveedores.'
+									: 'Recibe más visibilidad, recomendación prioritaria y una presencia destacada en la página principal.'}
+							</p>
+						</div>
+						<div className="pm-premium__actions">
+							{perfil?.esPremium ? (
+								<span className="pm-premium__badge">Proveedor premium activo</span>
+							) : (
+								<>
+									<a className="pm-premium__btn" href={PAYPAL_LINK} target="_blank" rel="noreferrer">
+										Pagar con PayPal
+									</a>
+									<p className="pm-premium__hint">Usa tu enlace de PayPal directo para habilitar el plan premium.</p>
+								</>
+							)}
+						</div>
+					</div>
+				)}
 			</header>
 
 			{error && <div className="pm-alert pm-alert--error">{error}</div>}

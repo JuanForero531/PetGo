@@ -27,6 +27,13 @@
   font-weight: 600;
 }
 
+.sd-chip--premium {
+  margin-left: 8px;
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #0f7a52;
+}
+
 .sd-title {
   margin: 12px 0 10px;
   color: #2f2115;

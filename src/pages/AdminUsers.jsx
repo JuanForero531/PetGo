@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import {
   obtenerTodosLosUsuarios,
   obtenerServicios,
   desactivarUsuario,
   activarUsuario,
   actualizarRolUsuario,
+  actualizarPremiumUsuario,
 } from '../firebase/firestore';
 import '../styles/AdminUsers.css';
 
@@ -20,7 +20,6 @@ function normalizarTexto(texto) {
 
 export default function AdminUsers() {
   const navigate = useNavigate();
-  const { perfil } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -155,7 +154,7 @@ export default function AdminUsers() {
       await actualizarRolUsuario(usuarioSeleccionado.id, nuevoRol);
       setUsuarios((prev) =>
         prev.map((u) =>
-          u.id === usuarioSeleccionado.id ? { ...u, rol: nuevoRol } : u
+          u.id === usuarioSeleccionado.id ? { ...u, rol: nuevoRol, esPremium: false } : u
         )
       );
       setModalActivo(false);
@@ -179,10 +178,35 @@ export default function AdminUsers() {
       inactivos: usuarios.filter((u) => u.activo === false).length,
       admins: usuarios.filter((u) => u.rol === 'admin').length,
       proveedores: usuarios.filter((u) => u.rol === 'proveedor').length,
+      proveedoresPremium: usuarios.filter((u) => u.rol === 'proveedor' && u.esPremium).length,
       usuarios: usuarios.filter((u) => u.rol === 'usuario').length,
     }),
     [usuarios]
   );
+
+  const handleCambiarPremium = async (usuario) => {
+    const nuevoEstado = !usuario.esPremium;
+    const accion = nuevoEstado ? 'marcar como premium' : 'volver a regular';
+
+    if (!window.confirm(`¿Seguro que deseas ${accion} a ${usuario.nombre} ${usuario.apellido}?`)) {
+      return;
+    }
+
+    setAccionPendiente(true);
+    try {
+      await actualizarPremiumUsuario(usuario.id, nuevoEstado);
+      setUsuarios((prev) =>
+        prev.map((u) => (u.id === usuario.id ? { ...u, esPremium: nuevoEstado } : u))
+      );
+      setError('');
+    } catch (err) {
+      console.error('Error al cambiar premium:', err);
+      setError(err.message || 'No se pudo actualizar el estado premium del usuario.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setAccionPendiente(false);
+    }
+  };
 
   return (
     <div className="au-page">
@@ -205,10 +229,17 @@ export default function AdminUsers() {
           </button>
           <button
             type="button"
-            className="au-menu__item au-menu__item--active"
+            className={`au-menu__item ${window.location.pathname === '/admin/usuarios' ? 'au-menu__item--active' : ''}`}
             onClick={() => navigate('/admin/usuarios')}
           >
-            Gestion de usuarios
+            Gestión de usuarios
+          </button>
+          <button
+            type="button"
+            className={`au-menu__item ${window.location.pathname === '/admin/servicios' ? 'au-menu__item--active' : ''}`}
+            onClick={() => navigate('/admin/servicios')}
+          >
+            Gestión de servicios
           </button>
           <button
             type="button"
@@ -255,6 +286,10 @@ export default function AdminUsers() {
             <div className="au-stat">
               <p className="au-stat__label">Proveedores</p>
               <p className="au-stat__value">{estadisticas.proveedores}</p>
+            </div>
+            <div className="au-stat">
+              <p className="au-stat__label">Premium</p>
+              <p className="au-stat__value">{estadisticas.proveedoresPremium}</p>
             </div>
             <div className="au-stat">
               <p className="au-stat__label">Usuarios</p>
@@ -309,6 +344,7 @@ export default function AdminUsers() {
                     <th>Nombre</th>
                     <th>Correo</th>
                     <th>Rol</th>
+                    <th>Premium</th>
                     <th>Servicios</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -332,6 +368,15 @@ export default function AdminUsers() {
                               : 'Usuario'}
                         </span>
                       </td>
+                      <td>
+                        {usuario.rol === 'proveedor' ? (
+                          <span className={`au-badge ${usuario.esPremium ? 'au-badge--premium' : 'au-badge--regular'}`}>
+                            {usuario.esPremium ? 'Premium' : 'Regular'}
+                          </span>
+                        ) : (
+                          <span className="au-badge au-badge--neutral">No aplica</span>
+                        )}
+                      </td>
                       <td>{usuario.rol === 'proveedor' ? (serviciosPorProveedor[usuario.id] || 0) : '-'}</td>
                       <td>
                         <span
@@ -351,6 +396,17 @@ export default function AdminUsers() {
                           >
                             Rol
                           </button>
+                          {usuario.rol === 'proveedor' && (
+                            <button
+                              type="button"
+                              className={`au-action-btn ${usuario.esPremium ? 'au-action-btn--premium-off' : 'au-action-btn--premium'}`}
+                              onClick={() => handleCambiarPremium(usuario)}
+                              disabled={accionPendiente}
+                              title={usuario.esPremium ? 'Quitar premium' : 'Hacer premium'}
+                            >
+                              {usuario.esPremium ? 'Quitar premium' : 'Hacer premium'}
+                            </button>
+                          )}
                           {usuario.activo !== false ? (
                             <button
                               type="button"
@@ -440,6 +496,12 @@ export default function AdminUsers() {
                 ))}
               </div>
             </div>
+
+            {usuarioSeleccionado.rol === 'proveedor' && (
+              <p className="au-modal__note">
+                Premium es independiente del rol de proveedor y se puede activar o quitar sin cambiar el acceso base.
+              </p>
+            )}
 
             <div className="au-modal__actions">
               <button

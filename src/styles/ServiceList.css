@@ -100,6 +100,11 @@ html,
   background: rgba(255, 255, 255, 0.12);
 }
 
+.sl-chip--premium {
+  background: rgba(255, 214, 153, 0.18);
+  border-color: rgba(255, 214, 153, 0.38);
+}
+
 .sl-hero__aside {
   display: grid;
   gap: 12px;
@@ -306,6 +311,11 @@ html,
   overflow: hidden;
 }
 
+.sl-card--premium {
+  border-color: rgba(201, 125, 46, 0.52);
+  box-shadow: 0 14px 28px rgba(201, 125, 46, 0.16);
+}
+
 .sl-card__cover {
   min-height: 78px;
   padding: 14px;
@@ -315,10 +325,29 @@ html,
   align-items: center;
 }
 
+.sl-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
 .sl-card__badge {
   background: rgba(201, 125, 46, 0.2);
   border: 1px solid rgba(201, 125, 46, 0.34);
   color: #8a4f17;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 5px 9px;
+}
+
+.sl-card__flag {
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid rgba(16, 185, 129, 0.34);
+  color: #0f7a52;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -359,6 +388,13 @@ html,
   margin: 0;
   line-height: 1.45;
   min-height: 44px;
+}
+
+.sl-card__hint {
+  margin: -2px 0 0;
+  color: #8a4f17;
+  font-size: 0.86rem;
+  font-weight: 600;
 }
 
 .sl-card__info {

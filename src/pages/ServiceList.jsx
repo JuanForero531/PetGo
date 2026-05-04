@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/ServiceList.css';
-import { obtenerServicios } from '../firebase/firestore';
+import { obtenerServiciosConProveedor } from '../firebase/firestore';
 import ServiceCard from '../components/ServiceCard';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -17,8 +17,8 @@ export default function ServiceList() {
       setCargando(true);
       setError('');
       try {
-        const serviciosDb = await obtenerServicios();
-        setServicios(serviciosDb);
+        const serviciosDb = await obtenerServiciosConProveedor();
+        setServicios(serviciosDb.filter((servicio) => servicio.activo !== false));
       } catch (err) {
         console.error('Error al cargar servicios:', err);
         setError('No se pudieron cargar los servicios en este momento.');
@@ -62,7 +62,11 @@ export default function ServiceList() {
 
   const serviciosDestacados = useMemo(() => {
     return [...serviciosFiltrados]
-      .sort((a, b) => Number(b.precio || 0) - Number(a.precio || 0))
+      .sort((a, b) => {
+        const premiumDiff = Number(Boolean(b.proveedor?.esPremium)) - Number(Boolean(a.proveedor?.esPremium));
+        if (premiumDiff !== 0) return premiumDiff;
+        return Number(b.precio || 0) - Number(a.precio || 0);
+      })
       .slice(0, 8);
   }, [serviciosFiltrados]);
 
@@ -82,6 +86,7 @@ export default function ServiceList() {
                 <span className="sl-chip">Atención en casa</span>
                 <span className="sl-chip">Pago acordado con proveedor</span>
                 <span className="sl-chip">Perfiles verificados</span>
+                <span className="sl-chip sl-chip--premium">Proveedores premium destacados</span>
               </div>
             </article>
             <aside className="sl-hero__aside">

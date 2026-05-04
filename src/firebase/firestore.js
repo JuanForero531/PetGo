@@ -9,6 +9,10 @@ const normalizarRol = (rol) => String(rol || "usuario").trim().toLowerCase();
 const normalizarPerfil = (data = {}) => ({
   ...data,
   rol: normalizarRol(data.rol),
+  esPremium: Boolean(data.esPremium),
+  premiumDesde: data.premiumDesde || null,
+  premiumHasta: data.premiumHasta || null,
+  premiumActualizadoEn: data.premiumActualizadoEn || null,
 });
 
 export const crearPerfilUsuario = async (uid, datos) => {
@@ -23,6 +27,10 @@ export const crearPerfilUsuario = async (uid, datos) => {
     direccion: datos.direccion || "",
     fotoPerfil: datos.fotoPerfil || "",
     activo: true,
+    esPremium: false,
+    premiumDesde: null,
+    premiumHasta: null,
+    premiumActualizadoEn: null,
     fechaRegistro: serverTimestamp(),
   });
 };
@@ -83,7 +91,9 @@ export const obtenerMetricasAdmin = async () => {
   const usuariosActivos = usuarios.filter((usuario) => usuario.activo !== false).length;
   const usuariosInactivos = totalUsuarios - usuariosActivos;
   const totalProveedores = usuarios.filter((usuario) => usuario.rol === "proveedor").length;
+  const totalProveedoresPremium = usuarios.filter((usuario) => usuario.rol === "proveedor" && usuario.esPremium).length;
   const totalAdmins = usuarios.filter((usuario) => usuario.rol === "admin").length;
+  const totalUsuariosPremium = usuarios.filter((usuario) => usuario.esPremium).length;
 
   const totalServicios = servicios.length;
   const serviciosActivos = servicios.filter((servicio) => servicio.activo !== false).length;
@@ -105,7 +115,9 @@ export const obtenerMetricasAdmin = async () => {
     usuariosActivos,
     usuariosInactivos,
     totalProveedores,
+    totalProveedoresPremium,
     totalAdmins,
+    totalUsuariosPremium,
     totalServicios,
     serviciosActivos,
     serviciosInactivos,
@@ -143,12 +155,35 @@ export const actualizarRolUsuario = async (uid, nuevoRol) => {
     if (!nuevoRol) throw new Error("Rol requerido");
     const userDoc = doc(db, "usuarios", uid);
     await updateDoc(userDoc, { 
-      rol: normalizarRol(nuevoRol)
+      rol: normalizarRol(nuevoRol),
+      esPremium: false,
+      premiumDesde: null,
+      premiumHasta: null,
+      premiumActualizadoEn: serverTimestamp(),
     });
     return true;
   } catch (error) {
     console.error("Error actualizando rol:", error);
     throw new Error(`No se pudo actualizar el rol: ${error.message}`);
+  }
+};
+
+export const actualizarPremiumUsuario = async (uid, esPremium) => {
+  try {
+    if (!uid) throw new Error("ID de usuario requerido");
+
+    const userDoc = doc(db, "usuarios", uid);
+    await updateDoc(userDoc, {
+      esPremium: Boolean(esPremium),
+      premiumDesde: esPremium ? serverTimestamp() : null,
+      premiumHasta: esPremium ? null : serverTimestamp(),
+      premiumActualizadoEn: serverTimestamp(),
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error actualizando premium:", error);
+    throw new Error(`No se pudo actualizar el estado premium: ${error.message}`);
   }
 };
 

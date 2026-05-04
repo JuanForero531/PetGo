@@ -313,6 +313,22 @@
   color: var(--au-gray-500);
 }
 
+.au-badge--premium {
+  background: rgba(245, 158, 11, 0.14);
+  color: #9a5a07;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.au-badge--regular {
+  background: rgba(107, 114, 128, 0.08);
+  color: var(--au-gray-500);
+}
+
+.au-badge--neutral {
+  background: rgba(156, 163, 175, 0.12);
+  color: #4b5563;
+}
+
 .au-status {
   display: inline-block;
   padding: 4px 12px;
@@ -357,6 +373,28 @@
 
 .au-action-btn--edit:hover:not(:disabled) {
   background: var(--au-amber-500);
+  color: white;
+}
+
+.au-action-btn--premium {
+  background: rgba(245, 158, 11, 0.12);
+  color: #8a4f17;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.au-action-btn--premium:hover:not(:disabled) {
+  background: var(--au-warning);
+  color: white;
+}
+
+.au-action-btn--premium-off {
+  background: rgba(107, 114, 128, 0.08);
+  color: var(--au-gray-500);
+  border-color: rgba(107, 114, 128, 0.24);
+}
+
+.au-action-btn--premium-off:hover:not(:disabled) {
+  background: var(--au-gray-500);
   color: white;
 }
 
@@ -478,6 +516,16 @@
   margin: 0 0 24px;
   font-size: 0.95rem;
   color: var(--au-gray-500);
+}
+
+.au-modal__note {
+  margin: -8px 0 22px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff8ef;
+  border: 1px solid #ecd8be;
+  color: var(--au-brown-700);
+  font-size: 0.92rem;
 }
 
 .au-modal__content {

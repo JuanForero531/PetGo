@@ -56,6 +56,7 @@ export default function ServiceDetail() {
         ) : (
           <article className="sd-card">
             <span className="sd-chip">{servicio.tipo}</span>
+            {proveedor?.esPremium && <span className="sd-chip sd-chip--premium">Premium</span>}
             <h1 className="sd-title">{servicio.nombreNegocio}</h1>
             <p className="sd-desc">{servicio.descripcion}</p>
 
@@ -72,6 +73,12 @@ export default function ServiceDetail() {
                 <span className="sd-label">Nombre del negocio</span>
                 <strong>{proveedor?.nombreNegocio || servicio.nombreNegocio || 'No disponible'}</strong>
               </div>
+              {proveedor?.esPremium && (
+                <div className="sd-item">
+                  <span className="sd-label">Plan</span>
+                  <strong>Proveedor premium</strong>
+                </div>
+              )}
               <div className="sd-item">
                 <span className="sd-label">Teléfono del proveedor</span>
                 <strong>{proveedor?.telefono || 'No disponible'}</strong>

@@ -45,7 +45,7 @@ export default function Navbar() {
 				<div className="pg-nav__actions">
 					{perfil?.rol === 'proveedor' && (
 						<button type="button" className="pg-nav__btn" onClick={() => navigate('/proveedor/nuevo')}>
-							Mi módulo
+							{perfil?.esPremium ? 'Mi módulo premium' : 'Mi módulo'}
 						</button>
 					)}
 					{perfil?.rol === 'admin' && (

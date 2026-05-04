@@ -112,21 +112,48 @@ export default function ProviderProfile() {
       <main className="pp-root">
         {/* Perfil del proveedor */}
         <section className="pp-header">
-          <div className="pp-header__avatar">
-            {proveedor?.fotoPerfil ? (
-              <img src={proveedor.fotoPerfil} alt={`Foto de ${proveedor?.nombre || 'proveedor'}`} />
-            ) : (
-              <span>{(proveedor?.nombre?.charAt(0) || 'P').toUpperCase()}</span>
-            )}
+          <div className="pp-header__hero">
+            <div className="pp-header__avatar">
+              {proveedor?.fotoPerfil ? (
+                <img src={proveedor.fotoPerfil} alt={`Foto de ${proveedor?.nombre || 'proveedor'}`} />
+              ) : (
+                <span>{(proveedor?.nombre?.charAt(0) || 'P').toUpperCase()}</span>
+              )}
+            </div>
+
+            <div className="pp-header__info">
+              <div className="pp-header__badges">
+                {proveedor?.esPremium && <span className="pp-premium">Proveedor premium</span>}
+                <span className={`pp-status ${proveedor?.activo ? 'pp-active' : 'pp-inactive'}`}>
+                  {proveedor?.activo ? 'Activo' : 'Inactivo'}
+                </span>
+                <span className={`pp-status ${proveedor?.esPremium ? 'pp-premium-status' : 'pp-regular-status'}`}>
+                  {proveedor?.esPremium ? 'Premium' : 'Regular'}
+                </span>
+              </div>
+
+              <h1 className="pp-title">{proveedor?.nombre} {proveedor?.apellido}</h1>
+              <p className="pp-business">{proveedor?.nombreNegocio}</p>
+              <p className="pp-type">{proveedor?.tipoServicio}</p>
+
+              <div className="pp-header__stats">
+                <div className="pp-stat">
+                  <span className="pp-stat__label">Servicios</span>
+                  <strong className="pp-stat__value">{servicios.length}</strong>
+                </div>
+                <div className="pp-stat">
+                  <span className="pp-stat__label">Categorías</span>
+                  <strong className="pp-stat__value">{tiposDisponibles.length - 1}</strong>
+                </div>
+                <div className="pp-stat">
+                  <span className="pp-stat__label">Visibilidad</span>
+                  <strong className="pp-stat__value">{proveedor?.esPremium ? 'Alta' : 'Estándar'}</strong>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="pp-header__info">
-            <h1 className="pp-title">{proveedor?.nombre} {proveedor?.apellido}</h1>
-            <p className="pp-business">{proveedor?.nombreNegocio}</p>
-            <p className="pp-type">{proveedor?.tipoServicio}</p>
-          </div>
-
-          <div className="pp-header__contact">
+          <aside className="pp-header__contact">
             <div className="pp-contact-item">
               <span className="pp-label">Correo:</span>
               <a href={`mailto:${proveedor?.correo}`} className="pp-value pp-link">
@@ -143,13 +170,7 @@ export default function ProviderProfile() {
               <span className="pp-label">Ubicación:</span>
               <span className="pp-value">{proveedor?.direccion || 'No disponible'}</span>
             </div>
-            <div className="pp-contact-item">
-              <span className="pp-label">Estado:</span>
-              <span className={`pp-status ${proveedor?.activo ? 'pp-active' : 'pp-inactive'}`}>
-                {proveedor?.activo ? 'Activo' : 'Inactivo'}
-              </span>
-            </div>
-          </div>
+          </aside>
         </section>
 
         {/* Servicios del proveedor */}

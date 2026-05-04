@@ -251,7 +251,11 @@ export default function AdminServices() {
           <button type="button" className="as-menu__item" onClick={() => navigate('/admin/dashboard')}>
             Dashboard
           </button>
-          <button type="button" className="as-menu__item" onClick={() => navigate('/admin/usuarios')}>
+          <button
+            type="button"
+            className={`as-menu__item ${window.location.pathname === '/admin/usuarios' ? 'as-menu__item--active' : ''}`}
+            onClick={() => navigate('/admin/usuarios')}
+          >
             Gestión de usuarios
           </button>
           <button type="button" className="as-menu__item as-menu__item--active">

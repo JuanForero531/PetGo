@@ -15,7 +15,11 @@ service cloud.firestore {
                       (
                         request.auth.uid == userId &&
                         request.resource.data.rol == resource.data.rol &&
-                        request.resource.data.activo == resource.data.activo
+                        request.resource.data.activo == resource.data.activo &&
+                        request.resource.data.esPremium == resource.data.esPremium &&
+                        request.resource.data.premiumDesde == resource.data.premiumDesde &&
+                        request.resource.data.premiumHasta == resource.data.premiumHasta &&
+                        request.resource.data.premiumActualizadoEn == resource.data.premiumActualizadoEn
                       )
                     );
       
