@@ -154,7 +154,7 @@ const firebaseConfig = {
 };
 ```
 
-Para el botón de premium del proveedor, configura también `VITE_PAYPAL_URL` con tu enlace directo de PayPal (por ejemplo, `https://www.paypal.com/paypalme/tuusuario`).
+Para el botón de premium del proveedor, configura también `VITE_PAYPAL_URL` con tu enlace directo de PayPal o correo de contacto asociado (por ejemplo, `mailto:forerojuan531@gmail.com`).
 
 ## Scripts Disponibles
 

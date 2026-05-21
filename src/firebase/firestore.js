@@ -2,7 +2,7 @@ import {
   doc, setDoc, getDoc, collection, addDoc,
   updateDoc, getDocs, query, where, serverTimestamp, limit,
 } from "firebase/firestore";
-import { db } from "./config";
+import { auth, db } from "./config";
 
 const normalizarRol = (rol) => String(rol || "usuario").trim().toLowerCase();
 
@@ -210,11 +210,13 @@ export const buscarUsuarios = async (termino) => {
     usuario.nombre?.toLowerCase().includes(terminoNormalizado) ||
     usuario.apellido?.toLowerCase().includes(terminoNormalizado) ||
     usuario.correo?.toLowerCase().includes(terminoNormalizado) ||
+    usuario.nombreNegocio?.toLowerCase().includes(terminoNormalizado) ||
     usuario.nombre_negocio?.toLowerCase().includes(terminoNormalizado)
   );
 };
 
 export const crearServicio = async (proveedorId, datos) => {
+  const proveedor = await obtenerUsuario(proveedorId);
   const ref = await addDoc(collection(db, "servicios"), {
     proveedorId,
     nombreNegocio: datos.nombreNegocio || "",
@@ -222,6 +224,15 @@ export const crearServicio = async (proveedorId, datos) => {
     descripcion: datos.descripcion || "",
     precio: datos.precio || 0,
     direccion: datos.direccion || "",
+    proveedorSnapshot: {
+      nombre: proveedor?.nombre || "",
+      apellido: proveedor?.apellido || "",
+      correo: proveedor?.correo || "",
+      telefono: proveedor?.telefono || "",
+      nombreNegocio: proveedor?.nombreNegocio || datos.nombreNegocio || "",
+      tipoServicio: proveedor?.tipoServicio || datos.tipo || "",
+      esPremium: Boolean(proveedor?.esPremium),
+    },
     activo: true,
     fechaCreacion: serverTimestamp(),
   });
@@ -249,6 +260,143 @@ export const obtenerServicio = async (servicioId) => {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 };
 
+const normalizarFechaTimestamp = (value) => {
+  if (!value) return 0;
+  if (typeof value?.toMillis === 'function') return value.toMillis();
+  if (typeof value?.seconds === 'number') return value.seconds * 1000;
+  return 0;
+};
+
+export const crearSolicitudServicio = async ({ servicio, clienteId, mensaje = '', canalContacto = '', clienteSnapshot = null }) => {
+  if (!servicio?.id) throw new Error('El servicio es requerido');
+  if (!servicio?.proveedorId) throw new Error('El servicio no tiene proveedor asignado');
+  if (!clienteId) throw new Error('El cliente es requerido');
+
+  const ref = await addDoc(collection(db, 'solicitudes_servicio'), {
+    servicioId: servicio.id,
+    proveedorId: servicio.proveedorId,
+    clienteId,
+    estado: 'pendiente',
+    mensaje: mensaje || '',
+    canalContacto: canalContacto || '',
+    servicioSnapshot: {
+      nombreNegocio: servicio.nombreNegocio || '',
+      tipo: servicio.tipo || '',
+      descripcion: servicio.descripcion || '',
+      precio: Number(servicio.precio || 0),
+      direccion: servicio.direccion || '',
+    },
+    proveedorSnapshot: {
+      nombre: servicio.proveedor?.nombre || '',
+      apellido: servicio.proveedor?.apellido || '',
+      correo: servicio.proveedor?.correo || '',
+      telefono: servicio.proveedor?.telefono || '',
+      nombreNegocio: servicio.proveedor?.nombreNegocio || servicio.nombreNegocio || '',
+      esPremium: Boolean(servicio.proveedor?.esPremium),
+    },
+    clienteSnapshot: {
+      nombre: clienteSnapshot?.nombre || '',
+      apellido: clienteSnapshot?.apellido || '',
+      correo: clienteSnapshot?.correo || '',
+      telefono: clienteSnapshot?.telefono || '',
+    },
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  return ref.id;
+};
+
+export const obtenerSolicitudesPorCliente = async (clienteId) => {
+  const q = query(collection(db, 'solicitudes_servicio'), where('clienteId', '==', clienteId));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => normalizarFechaTimestamp(b.createdAt) - normalizarFechaTimestamp(a.createdAt));
+};
+
+export const obtenerSolicitudesPorProveedor = async (proveedorId) => {
+  const q = query(collection(db, 'solicitudes_servicio'), where('proveedorId', '==', proveedorId));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => normalizarFechaTimestamp(b.createdAt) - normalizarFechaTimestamp(a.createdAt));
+};
+
+export const responderSolicitudServicio = async ({ solicitudId, proveedorId, estado }) => {
+  if (!solicitudId) throw new Error('La solicitud es requerida');
+  if (!proveedorId) throw new Error('El proveedor es requerido');
+  if (!['aceptada', 'rechazada'].includes(estado)) throw new Error('Estado inválido');
+
+  await updateDoc(doc(db, 'solicitudes_servicio', solicitudId), {
+    estado,
+    respondedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const marcarSolicitudComoCompletada = async ({ solicitudId, clienteId }) => {
+  if (!solicitudId) throw new Error('La solicitud es requerida');
+  if (!clienteId) throw new Error('El cliente es requerido');
+
+  await updateDoc(doc(db, 'solicitudes_servicio', solicitudId), {
+    estado: 'completada',
+    completedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const crearResenaServicio = async ({ solicitudId, servicioId, proveedorId, clienteId, rating, review }) => {
+  if (!solicitudId) throw new Error('La solicitud es requerida');
+  if (!servicioId) throw new Error('El servicio es requerido');
+  if (!proveedorId) throw new Error('El proveedor es requerido');
+  if (!clienteId) throw new Error('El cliente es requerido');
+
+  const puntaje = Number(rating);
+  if (!Number.isFinite(puntaje) || puntaje < 1 || puntaje > 5) {
+    throw new Error('La calificación debe estar entre 1 y 5');
+  }
+
+  const texto = String(review || '').trim();
+  if (texto.length < 10) {
+    throw new Error('La reseña debe tener al menos 10 caracteres');
+  }
+
+  const ref = await addDoc(collection(db, 'resenas_servicio'), {
+    solicitudId,
+    servicioId,
+    proveedorId,
+    clienteId,
+    rating: puntaje,
+    review: texto,
+    createdAt: serverTimestamp(),
+  });
+
+  return ref.id;
+};
+
+export const obtenerResenasDelServicio = async (servicioId) => {
+  if (!servicioId) return [];
+
+  const q = query(collection(db, 'resenas_servicio'), where('servicioId', '==', servicioId));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => normalizarFechaTimestamp(b.createdAt) - normalizarFechaTimestamp(a.createdAt));
+};
+
+export const obtenerResumenResenasDelServicio = async (servicioId) => {
+  const resenas = await obtenerResenasDelServicio(servicioId);
+  const total = resenas.length;
+  const promedio = total ? resenas.reduce((suma, resena) => suma + Number(resena.rating || 0), 0) / total : 0;
+
+  return {
+    total,
+    promedio,
+    resenas,
+  };
+};
+
 export const editarServicio = async (servicioId, datos) => {
   await updateDoc(doc(db, "servicios", servicioId), {
     nombreNegocio: datos.nombreNegocio,
@@ -270,16 +418,28 @@ export const obtenerTodosLosServicios = async () => {
 
 export const obtenerServiciosConProveedor = async () => {
   const servicios = await obtenerTodosLosServicios();
-  const usuarios = await obtenerTodosLosUsuarios();
-  
-  const usuariosMap = usuarios.reduce((mapa, usuario) => {
-    mapa[usuario.id] = usuario;
-    return mapa;
-  }, {});
+
+  let usuariosMap = null;
+
+  try {
+    const usuarioActual = auth.currentUser;
+    if (usuarioActual) {
+      const perfilActual = await obtenerUsuario(usuarioActual.uid);
+      if (perfilActual?.rol === 'admin') {
+        const usuarios = await obtenerTodosLosUsuarios();
+        usuariosMap = usuarios.reduce((mapa, usuario) => {
+          mapa[usuario.id] = usuario;
+          return mapa;
+        }, {});
+      }
+    }
+  } catch (error) {
+    console.warn('No fue posible enriquecer los servicios con perfiles de proveedor:', error);
+  }
 
   return servicios.map(servicio => ({
     ...servicio,
-    proveedor: usuariosMap[servicio.proveedorId] || { nombre: 'Desconocido', correo: 'N/A' },
+    proveedor: usuariosMap?.[servicio.proveedorId] || servicio.proveedor || { nombre: 'Desconocido', correo: 'N/A' },
   }));
 };
 

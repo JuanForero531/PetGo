@@ -7,6 +7,8 @@ import ServiceList from './pages/ServiceList';
 import ServiceDetail from './pages/ServiceDetail';
 import ServiceForm from './pages/ServiceForm';
 import ProviderProfile from './pages/ProviderProfile';
+import ProviderRequests from './pages/ProviderRequests';
+import ClientHiredServices from './pages/ClientHiredServices';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminServices from './pages/AdminServices';
@@ -24,6 +26,14 @@ function App() {
           <Route path="/proveedor/:id" element={<ProviderProfile />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
+          <Route
+            path="/proveedor/mis-solicitudes"
+            element={(
+              <ProtectedRoute roles={["proveedor"]} unauthorizedTo="/servicios">
+                <ProviderRequests />
+              </ProtectedRoute>
+            )}
+          />
           <Route path="/recuperar" element={<RecoverPassword />} />
 
           <Route
@@ -63,6 +73,15 @@ function App() {
             element={(
               <ProtectedRoute roles={['admin']} unauthorizedTo="/servicios">
                 <AdminServices />
+              </ProtectedRoute>
+            )}
+          />
+
+          <Route
+            path="/mis-servicios"
+            element={(
+              <ProtectedRoute unauthorizedTo="/servicios">
+                <ClientHiredServices />
               </ProtectedRoute>
             )}
           />

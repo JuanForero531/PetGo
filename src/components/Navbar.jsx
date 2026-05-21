@@ -44,13 +44,23 @@ export default function Navbar() {
 
 				<div className="pg-nav__actions">
 					{perfil?.rol === 'proveedor' && (
-						<button type="button" className="pg-nav__btn" onClick={() => navigate('/proveedor/nuevo')}>
-							{perfil?.esPremium ? 'Mi módulo premium' : 'Mi módulo'}
-						</button>
+						<>
+							<button type="button" className="pg-nav__btn" onClick={() => navigate('/proveedor/nuevo')}>
+								{perfil?.esPremium ? 'Mi módulo premium' : 'Mi módulo'}
+							</button>
+							<button type="button" className="pg-nav__btn" onClick={() => navigate('/proveedor/mis-solicitudes')}>
+								Solicitudes
+							</button>
+						</>
 					)}
 					{perfil?.rol === 'admin' && (
 						<button type="button" className="pg-nav__btn" onClick={() => navigate('/admin/dashboard')}>
 							Panel admin
+						</button>
+					)}
+					{user && perfil?.rol !== 'proveedor' && perfil?.rol !== 'admin' && (
+						<button type="button" className="pg-nav__btn" onClick={() => navigate('/mis-servicios')}>
+							Mis servicios
 						</button>
 					)}
 					{user && (

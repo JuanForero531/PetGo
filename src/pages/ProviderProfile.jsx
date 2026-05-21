@@ -1,6 +1,12 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { obtenerUsuario, obtenerServiciosDelProveedor } from '../firebase/firestore';
+import { useAuth } from '../context/AuthContext';
+import {
+  obtenerUsuario,
+  obtenerServiciosDelProveedor,
+  obtenerSolicitudesPorProveedor,
+  responderSolicitudServicio,
+} from '../firebase/firestore';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ServiceCard from '../components/ServiceCard';
@@ -9,12 +15,15 @@ import '../styles/ProviderProfile.css';
 export default function ProviderProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, perfil } = useAuth();
   const [proveedor, setProveedor] = useState(null);
   const [servicios, setServicios] = useState([]);
+  const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filtro, setFiltro] = useState('Todos');
   const [busqueda, setBusqueda] = useState('');
+  const [gestionandoId, setGestionandoId] = useState('');
 
   useEffect(() => {
     const cargarPerfil = async () => {
@@ -22,7 +31,8 @@ export default function ProviderProfile() {
       setError('');
 
       try {
-        // Cargar proveedor
+        const esMiPerfil = user?.uid === id;
+
         const datosProveedor = await obtenerUsuario(id);
         if (!datosProveedor) {
           setError('El proveedor no existe.');
@@ -34,9 +44,13 @@ export default function ProviderProfile() {
         }
         setProveedor(datosProveedor);
 
-        // Cargar servicios del proveedor
-        const serviciosProveedor = await obtenerServiciosDelProveedor(id);
+        const [serviciosProveedor, solicitudesProveedor] = await Promise.all([
+          obtenerServiciosDelProveedor(id),
+          esMiPerfil ? obtenerSolicitudesPorProveedor(id) : Promise.resolve([]),
+        ]);
+
         setServicios(serviciosProveedor);
+        setSolicitudes(solicitudesProveedor);
       } catch (err) {
         console.error('Error al cargar perfil del proveedor:', err);
         setError('No fue posible cargar el perfil del proveedor.');
@@ -48,7 +62,32 @@ export default function ProviderProfile() {
     if (id) {
       cargarPerfil();
     }
-  }, [id]);
+  }, [id, user?.uid]);
+
+  const esMiPerfil = user?.uid === id;
+
+  const formatearFecha = (valor) => {
+    if (!valor) return 'Sin fecha';
+    const fecha = typeof valor?.toDate === 'function' ? valor.toDate() : new Date(valor);
+    if (Number.isNaN(fecha.getTime())) return 'Sin fecha';
+    return fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const handleGestionarSolicitud = async (solicitudId, estado) => {
+    setGestionandoId(solicitudId);
+    setError('');
+
+    try {
+      await responderSolicitudServicio({ solicitudId, proveedorId: id, estado });
+      const solicitudesActualizadas = await obtenerSolicitudesPorProveedor(id);
+      setSolicitudes(solicitudesActualizadas);
+    } catch (err) {
+      console.error('Error al responder solicitud:', err);
+      setError(err.message || 'No fue posible actualizar la solicitud.');
+    } finally {
+      setGestionandoId('');
+    }
+  };
 
   const tiposDisponibles = useMemo(() => {
     const tipos = [...new Set(servicios.map(s => s.tipo).filter(Boolean))]
@@ -172,6 +211,84 @@ export default function ProviderProfile() {
             </div>
           </aside>
         </section>
+
+        {esMiPerfil && perfil?.rol === 'proveedor' && (
+          <section className="pp-requests">
+            <header className="pp-requests__header">
+              <div>
+                <h2 className="pp-requests__title">Solicitudes de contratación</h2>
+                <p className="pp-requests__subtitle">Acepta o rechaza las solicitudes que llegan a tus servicios.</p>
+              </div>
+              <span className="pp-requests__count">{solicitudes.length} solicitud{solicitudes.length === 1 ? '' : 'es'}</span>
+            </header>
+
+            {solicitudes.length === 0 ? (
+              <div className="pp-empty">
+                <p>Aún no tienes solicitudes registradas.</p>
+              </div>
+            ) : (
+              <div className="pp-request-list">
+                {solicitudes.map((solicitud) => (
+                  <article key={solicitud.id} className="pp-request-card">
+                    <div className="pp-request-card__top">
+                      <div>
+                        <h3>{solicitud.servicioSnapshot?.nombreNegocio || 'Servicio sin nombre'}</h3>
+                        <p>{solicitud.servicioSnapshot?.tipo || 'Sin tipo'}</p>
+                      </div>
+                      <span className={`pp-request-status pp-request-status--${solicitud.estado}`}>
+                        {solicitud.estado}
+                      </span>
+                    </div>
+
+                    <div className="pp-request-card__grid">
+                      <div>
+                        <span className="pp-request-label">Cliente</span>
+                        <strong>
+                          {solicitud.clienteSnapshot?.nombre || 'Cliente'} {solicitud.clienteSnapshot?.apellido || ''}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="pp-request-label">Contacto</span>
+                        <strong>{solicitud.clienteSnapshot?.telefono || solicitud.clienteSnapshot?.correo || 'No disponible'}</strong>
+                      </div>
+                      <div>
+                        <span className="pp-request-label">Fecha</span>
+                        <strong>{formatearFecha(solicitud.createdAt)}</strong>
+                      </div>
+                      <div>
+                        <span className="pp-request-label">Preferencia</span>
+                        <strong>{solicitud.canalContacto || 'No indicada'}</strong>
+                      </div>
+                    </div>
+
+                    {solicitud.mensaje && <p className="pp-request-message">{solicitud.mensaje}</p>}
+
+                    {solicitud.estado === 'pendiente' && (
+                      <div className="pp-request-actions">
+                        <button
+                          type="button"
+                          className="pp-request-btn pp-request-btn--accept"
+                          onClick={() => handleGestionarSolicitud(solicitud.id, 'aceptada')}
+                          disabled={gestionandoId === solicitud.id}
+                        >
+                          Aceptar
+                        </button>
+                        <button
+                          type="button"
+                          className="pp-request-btn pp-request-btn--reject"
+                          onClick={() => handleGestionarSolicitud(solicitud.id, 'rechazada')}
+                          disabled={gestionandoId === solicitud.id}
+                        >
+                          Rechazar
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Servicios del proveedor */}
         <section className="pp-services">

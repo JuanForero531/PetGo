@@ -8,7 +8,7 @@ service cloud.firestore {
 
     match /usuarios/{userId} {
       allow read: if request.auth != null && 
-                     (request.auth.uid == userId || esAdmin());
+                     (request.auth.uid == userId || esAdmin() || resource.data.rol == 'proveedor');
       
       allow update: if request.auth != null && (
                       esAdmin() ||
@@ -33,6 +33,60 @@ service cloud.firestore {
                        (resource.data.proveedorId == request.auth.uid || esAdmin());
       allow delete: if request.auth != null && 
                        (resource.data.proveedorId == request.auth.uid || esAdmin());
+    }
+
+    match /solicitudes_servicio/{solicitudId} {
+      function esCliente() {
+        return request.auth != null && resource.data.clienteId == request.auth.uid;
+      }
+
+      function esProveedor() {
+        return request.auth != null && resource.data.proveedorId == request.auth.uid;
+      }
+
+      allow read: if request.auth != null && (esCliente() || esProveedor() || esAdmin());
+
+      allow create: if request.auth != null
+        && request.resource.data.clienteId == request.auth.uid
+        && request.resource.data.estado == 'pendiente';
+
+      allow update: if request.auth != null && (
+        esAdmin() ||
+        (
+          esProveedor() &&
+          resource.data.estado == 'pendiente' &&
+          request.resource.data.clienteId == resource.data.clienteId &&
+          request.resource.data.proveedorId == resource.data.proveedorId &&
+          request.resource.data.servicioId == resource.data.servicioId &&
+          request.resource.data.estado in ['aceptada', 'rechazada']
+        ) ||
+        (
+          esCliente() &&
+          resource.data.estado == 'aceptada' &&
+          request.resource.data.clienteId == resource.data.clienteId &&
+          request.resource.data.proveedorId == resource.data.proveedorId &&
+          request.resource.data.servicioId == resource.data.servicioId &&
+          request.resource.data.estado == 'completada'
+        )
+      );
+    }
+
+    match /resenas_servicio/{resenaId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.resource.data.clienteId == request.auth.uid
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.review is string
+        && request.resource.data.review.size() >= 10
+        && exists(/databases/$(database)/documents/solicitudes_servicio/$(request.resource.data.solicitudId))
+        && get(/databases/$(database)/documents/solicitudes_servicio/$(request.resource.data.solicitudId)).data.clienteId == request.auth.uid
+        && get(/databases/$(database)/documents/solicitudes_servicio/$(request.resource.data.solicitudId)).data.estado == 'completada'
+        && get(/databases/$(database)/documents/solicitudes_servicio/$(request.resource.data.solicitudId)).data.servicioId == request.resource.data.servicioId
+        && get(/databases/$(database)/documents/solicitudes_servicio/$(request.resource.data.solicitudId)).data.proveedorId == request.resource.data.proveedorId;
+
+      allow update, delete: if request.auth != null && esAdmin();
     }
   }
 }

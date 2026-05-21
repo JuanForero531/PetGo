@@ -12,7 +12,7 @@ import {
 import { cerrarSesion } from '../firebase/auth';
 import '../styles/ProviderModule.css';
 
-const PAYPAL_LINK = import.meta.env.VITE_PAYPAL_URL || 'https://www.paypal.com/paypalme/tuusuario';
+const PAYPAL_LINK = import.meta.env.VITE_PAYPAL_URL || 'https://www.paypal.com/paypalme/forero53';
 
 const TIPOS = [
 	'Baño y secado',
@@ -342,7 +342,7 @@ export default function ServiceForm() {
 							<p className="pm-premium__desc">
 								{perfil?.esPremium
 									? 'Tu perfil puede mostrarse antes en el marketplace y destacar frente a otros proveedores.'
-									: 'Recibe más visibilidad, recomendación prioritaria y una presencia destacada en la página principal.'}
+									: 'Recibe más visibilidad, recomendación prioritaria y una presencia destacada en la página principal por $5 mensuales.'}
 							</p>
 						</div>
 						<div className="pm-premium__actions">
@@ -353,7 +353,7 @@ export default function ServiceForm() {
 									<a className="pm-premium__btn" href={PAYPAL_LINK} target="_blank" rel="noreferrer">
 										Pagar con PayPal
 									</a>
-									<p className="pm-premium__hint">Usa tu enlace de PayPal directo para habilitar el plan premium.</p>
+									<p className="pm-premium__hint">El plan premium cuesta $5 mensuales y te lleva directo al pago de PayPal.</p>
 								</>
 							)}
 						</div>

@@ -1,10 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function ServiceCard({ servicio }) {
+export default function ServiceCard({ servicio, puntuacion }) {
 	const navigate = useNavigate();
 	const inicial = (servicio?.tipo || 'S').charAt(0).toUpperCase();
 	const esPremium = Boolean(servicio?.proveedor?.esPremium);
+	const tieneCalificacion = puntuacion?.promedio > 0;
 
 	return (
 		<article className={`sl-card ${esPremium ? 'sl-card--premium' : ''}`} key={servicio.id}>
@@ -12,6 +13,11 @@ export default function ServiceCard({ servicio }) {
 				<div className="sl-card__tags">
 					<span className="sl-card__badge">{servicio.tipo}</span>
 					{esPremium && <span className="sl-card__flag">Premium</span>}
+					{tieneCalificacion && (
+						<span className="sl-card__rating">
+							⭐ {puntuacion.promedio.toFixed(1)}
+						</span>
+					)}
 				</div>
 				<span className="sl-card__avatar">{inicial}</span>
 			</div>

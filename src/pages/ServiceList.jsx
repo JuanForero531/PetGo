@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/ServiceList.css';
-import { obtenerServiciosConProveedor } from '../firebase/firestore';
+import { obtenerServiciosConProveedor, obtenerResumenResenasDelServicio } from '../firebase/firestore';
 import ServiceCard from '../components/ServiceCard';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -11,6 +11,7 @@ export default function ServiceList() {
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
+  const [puntuaciones, setPuntuaciones] = useState({});
 
   useEffect(() => {
     const cargarServicios = async () => {
@@ -30,6 +31,26 @@ export default function ServiceList() {
 
     cargarServicios();
   }, []);
+
+  useEffect(() => {
+    const cargarPuntuaciones = async () => {
+      const puntuacionesMap = {};
+      for (const servicio of servicios) {
+        try {
+          const resumen = await obtenerResumenResenasDelServicio(servicio.id);
+          puntuacionesMap[servicio.id] = resumen;
+        } catch (err) {
+          console.warn(`No se pudo cargar puntuación para ${servicio.id}:`, err);
+          puntuacionesMap[servicio.id] = { promedio: 0, total: 0 };
+        }
+      }
+      setPuntuaciones(puntuacionesMap);
+    };
+
+    if (servicios.length > 0) {
+      cargarPuntuaciones();
+    }
+  }, [servicios]);
 
   const tiposDisponibles = useMemo(() => {
     const tiposUnicos = [...new Set(servicios.map(servicio => servicio.tipo).filter(Boolean))]
@@ -183,7 +204,7 @@ export default function ServiceList() {
               <div className="sl-scroller">
                 {serviciosDestacados.map((servicio) => (
                   <div className="sl-scroller__item" key={`destacado-${servicio.id}`}>
-                    <ServiceCard servicio={servicio} />
+                    <ServiceCard servicio={servicio} puntuacion={puntuaciones[servicio.id]} />
                   </div>
                 ))}
               </div>
@@ -196,7 +217,7 @@ export default function ServiceList() {
               </div>
               <div className="sl-grid fade-up">
                 {serviciosFiltrados.map((servicio) => (
-                  <ServiceCard key={servicio.id} servicio={servicio} />
+                  <ServiceCard key={servicio.id} servicio={servicio} puntuacion={puntuaciones[servicio.id]} />
                 ))}
               </div>
             </section>
