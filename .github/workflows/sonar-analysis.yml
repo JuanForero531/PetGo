@@ -7,11 +7,13 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-test:
+  build-test-and-sonar:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -24,38 +26,10 @@ jobs:
       - name: Run tests (coverage)
         run: npm test -- --coverage --runInBand
 
-      - name: Upload coverage (artifact)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/lcov.info
-
-  sonar-scan:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: secrets.SONAR_TOKEN != ''
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Java (required by SonarScanner)
-        uses: actions/setup-java@v4
-        with:
-          java-version: '11'
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Restore dependencies
-        run: npm ci
-
-      - name: Run tests to ensure coverage available
-        run: npm test -- --coverage --runInBand
-
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
+        with:
+          args: >
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
