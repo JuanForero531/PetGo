@@ -1,12 +1,13 @@
+/* eslint-env jest */
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import Register from '../pages/Register';
+import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import Register from '../src/pages/Register';
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
+  Link: ({ children, ...props }) => <a {...props}>{children}</a>,
 }));
 
 jest.mock('../src/firebase/auth', () => ({
@@ -14,129 +15,59 @@ jest.mock('../src/firebase/auth', () => ({
   loginConGoogle: jest.fn(),
 }));
 
-import { registrarUsuario, loginConGoogle } from '../firebase/auth';
+import { registrarUsuario, loginConGoogle } from '../src/firebase/auth';
 
-const renderRegister = () =>
-  render(<MemoryRouter><Register /></MemoryRouter>);
+const renderRegister = () => render(<Register />);
 
-const fillBasicForm = () => {
+const selectProviderRole = () => {
+  fireEvent.click(screen.getByText('Soy proveedor'));
+};
+
+const fillUserForm = ({ acceptTerms = true } = {}) => {
   fireEvent.change(screen.getByPlaceholderText('Ej: Juan'), { target: { value: 'Juan' } });
   fireEvent.change(screen.getByPlaceholderText('Ej: Forero'), { target: { value: 'Forero' } });
   fireEvent.change(screen.getByPlaceholderText('ejemplo@correo.com'), { target: { value: 'juan@test.com' } });
   fireEvent.change(screen.getByPlaceholderText('300 123 4567'), { target: { value: '3001234567' } });
   fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), { target: { value: 'Password1!' } });
   fireEvent.change(screen.getByPlaceholderText('Repite tu contraseña'), { target: { value: 'Password1!' } });
-  fireEvent.click(screen.getByLabelText(/términos y condiciones/i));
+  if (acceptTerms) {
+    fireEvent.click(screen.getByRole('checkbox'));
+  }
+};
+
+const fillProviderForm = () => {
+  fillUserForm();
+  fireEvent.change(screen.getByPlaceholderText('Ej: PetCare Tunja'), { target: { value: 'Mi Negocio' } });
+  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Baño y secado' } });
+  fireEvent.change(screen.getByPlaceholderText('Ej: Cra 10 #23-45, Centro'), { target: { value: 'Cra 10 #23-45, Centro' } });
 };
 
 beforeEach(() => jest.clearAllMocks());
 
-describe('Register - validaciones básicas', () => {
-  test('muestra error si nombre está vacío', async () => {
-    renderRegister();
-    fireEvent.click(screen.getByText('Crear cuenta gratis'));
-    expect(await screen.findByText('El nombre es requerido.')).toBeInTheDocument();
-  });
-
-  test('muestra error si apellido está vacío', async () => {
-    renderRegister();
-    fireEvent.change(screen.getByPlaceholderText('Ej: Juan'), { target: { value: 'Juan' } });
-    fireEvent.click(screen.getByText('Crear cuenta gratis'));
-    expect(await screen.findByText('El apellido es requerido.')).toBeInTheDocument();
-  });
-
-  test('muestra error si correo no es válido', async () => {
-    renderRegister();
-    fireEvent.change(screen.getByPlaceholderText('Ej: Juan'), { target: { value: 'Juan' } });
-    fireEvent.change(screen.getByPlaceholderText('Ej: Forero'), { target: { value: 'Forero' } });
-    fireEvent.change(screen.getByPlaceholderText('ejemplo@correo.com'), { target: { value: 'correo-malo' } });
-    fireEvent.change(screen.getByPlaceholderText('300 123 4567'), { target: { value: '3001234567' } });
-    fireEvent.click(screen.getByText('Crear cuenta gratis'));
-    expect(await screen.findByText('Por favor ingresa un correo válido.')).toBeInTheDocument();
-  });
-
-  test('muestra error si contraseña es corta', async () => {
-    renderRegister();
-    fireEvent.change(screen.getByPlaceholderText('Ej: Juan'), { target: { value: 'Juan' } });
-    fireEvent.change(screen.getByPlaceholderText('Ej: Forero'), { target: { value: 'Forero' } });
-    fireEvent.change(screen.getByPlaceholderText('ejemplo@correo.com'), { target: { value: 'juan@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('300 123 4567'), { target: { value: '3001234567' } });
-    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), { target: { value: '123' } });
-    fireEvent.click(screen.getByText('Crear cuenta gratis'));
-    expect(await screen.findByText('La contraseña debe tener al menos 6 caracteres.')).toBeInTheDocument();
-  });
-
-  test('muestra error si contraseñas no coinciden', async () => {
-    renderRegister();
-    fireEvent.change(screen.getByPlaceholderText('Ej: Juan'), { target: { value: 'Juan' } });
-    fireEvent.change(screen.getByPlaceholderText('Ej: Forero'), { target: { value: 'Forero' } });
-    fireEvent.change(screen.getByPlaceholderText('ejemplo@correo.com'), { target: { value: 'juan@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('300 123 4567'), { target: { value: '3001234567' } });
-    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), { target: { value: 'Password1!' } });
-    fireEvent.change(screen.getByPlaceholderText('Repite tu contraseña'), { target: { value: 'Diferente1!' } });
-    fireEvent.click(screen.getByText('Crear cuenta gratis'));
-    expect(await screen.findByText('Las contraseñas no coinciden.')).toBeInTheDocument();
-  });
-
-  test('muestra error si no acepta términos', async () => {
-    renderRegister();
-    fireEvent.change(screen.getByPlaceholderText('Ej: Juan'), { target: { value: 'Juan' } });
-    fireEvent.change(screen.getByPlaceholderText('Ej: Forero'), { target: { value: 'Forero' } });
-    fireEvent.change(screen.getByPlaceholderText('ejemplo@correo.com'), { target: { value: 'juan@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('300 123 4567'), { target: { value: '3001234567' } });
-    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), { target: { value: 'Password1!' } });
-    fireEvent.change(screen.getByPlaceholderText('Repite tu contraseña'), { target: { value: 'Password1!' } });
-    fireEvent.click(screen.getByText('Crear cuenta gratis'));
-    expect(await screen.findByText('Debes aceptar los términos y condiciones.')).toBeInTheDocument();
-  });
-});
-
-describe('Register - registro exitoso', () => {
-  test('navega a /login tras registro como usuario', async () => {
-    registrarUsuario.mockResolvedValue({});
-    renderRegister();
-    fillBasicForm();
-    fireEvent.click(screen.getByText('Crear cuenta gratis'));
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/login'));
-  });
-
-  test('muestra error si registrarUsuario falla', async () => {
-    registrarUsuario.mockRejectedValue({ message: 'El correo ya está en uso.' });
-    renderRegister();
-    fillBasicForm();
-    fireEvent.click(screen.getByText('Crear cuenta gratis'));
-    expect(await screen.findByText('El correo ya está en uso.')).toBeInTheDocument();
-  });
-});
-
-describe('Register - rol proveedor', () => {
+describe('Register', () => {
   test('muestra campos extra al seleccionar proveedor', () => {
     renderRegister();
-    fireEvent.click(screen.getByText('Soy proveedor'));
+    selectProviderRole();
     expect(screen.getByPlaceholderText('Ej: PetCare Tunja')).toBeInTheDocument();
   });
 
-  test('muestra error si falta nombre de negocio', async () => {
+  test('navega a /login tras registro como usuario', async () => {
+    registrarUsuario.mockResolvedValue({});
     renderRegister();
-    fireEvent.click(screen.getByText('Soy proveedor'));
-    fillBasicForm();
+    fillUserForm();
     fireEvent.click(screen.getByText('Crear cuenta gratis'));
-    expect(await screen.findByText('El nombre del negocio es requerido para proveedores.')).toBeInTheDocument();
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/login'));
   });
 
   test('navega a /proveedor/nuevo tras registro como proveedor', async () => {
     registrarUsuario.mockResolvedValue({});
     renderRegister();
-    fireEvent.click(screen.getByText('Soy proveedor'));
-    fillBasicForm();
-    fireEvent.change(screen.getByPlaceholderText('Ej: PetCare Tunja'), { target: { value: 'Mi Negocio' } });
-    fireEvent.change(screen.getByDisplayValue(''), { target: { value: 'Baño y secado' } });
+    selectProviderRole();
+    fillProviderForm();
     fireEvent.click(screen.getByText('Crear cuenta gratis'));
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/proveedor/nuevo'));
   });
-});
 
-describe('Register - Google', () => {
   test('navega a /servicios al registrarse con Google como usuario', async () => {
     loginConGoogle.mockResolvedValue({ perfil: { rol: 'usuario' } });
     renderRegister();

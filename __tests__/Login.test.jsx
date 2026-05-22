@@ -1,12 +1,13 @@
+/* eslint-env jest */
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import Login from '../pages/Login';
+import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import Login from '../src/pages/Login';
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
+  Link: ({ children, ...props }) => <a {...props}>{children}</a>,
 }));
 
 jest.mock('../src/firebase/auth', () => ({
@@ -14,10 +15,10 @@ jest.mock('../src/firebase/auth', () => ({
   loginConGoogle: jest.fn(),
 }));
 
-import { loginConCorreo, loginConGoogle } from '../firebase/auth';
+import { loginConCorreo, loginConGoogle } from '../src/firebase/auth';
 
 const renderLogin = () =>
-  render(<MemoryRouter><Login /></MemoryRouter>);
+  render(<Login />);
 
 beforeEach(() => {
   jest.clearAllMocks();
