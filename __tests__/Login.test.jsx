@@ -9,7 +9,7 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-jest.mock('../firebase/auth', () => ({
+jest.mock('../src/firebase/auth', () => ({
   loginConCorreo: jest.fn(),
   loginConGoogle: jest.fn(),
 }));
